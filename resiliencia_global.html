@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Resiliencia Global: El Desafío Climático</title>
+<style>
+:root{
+  --bg1:#02121f; --bg2:#03314a; --teal:#1fd1c9; --blue:#2b8ad1; --danger:#ff5b6e;
+  --good:#3ee08c; --card:#0a3a55; --card2:#0d4a6b; --text:#eafcff;
+}
+*{box-sizing:border-box;}
+body{margin:0;min-height:100vh;font-family:'Segoe UI',Arial,sans-serif;color:var(--text);
+  background:radial-gradient(circle at 20% 10%,#0d4a6b,transparent 60%),
+             linear-gradient(160deg,var(--bg1),var(--bg2));
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+h1,h2,h3{margin:0 0 8px;}
+.screen{max-width:900px;margin:0 auto;padding:24px 16px 60px;}
+.hidden{display:none !important;}
+.btn{background:linear-gradient(135deg,var(--teal),var(--blue));border:none;color:#04222f;
+  font-weight:700;padding:12px 20px;border-radius:10px;cursor:pointer;font-size:15px;
+  box-shadow:0 4px 12px rgba(31,209,201,.3);transition:transform .1s;}
+.btn:hover{transform:translateY(-2px);}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.btn.danger{background:linear-gradient(135deg,#ff5b6e,#c9304a);color:#fff;}
+select,input[type=text]{width:100%;padding:10px;border-radius:8px;border:1px solid #2b8ad1;
+  background:#04263a;color:var(--text);font-size:15px;margin-top:4px;}
+.card{background:var(--card);border-radius:14px;padding:18px;margin-bottom:16px;
+  border:1px solid rgba(31,209,201,.25);}
+.setup-row{display:flex;gap:12px;align-items:end;margin-bottom:14px;flex-wrap:wrap;}
+.setup-row>div{flex:1;min-width:140px;}
+.playerCount{display:flex;gap:10px;margin-bottom:18px;}
+.playerCount button{flex:1;padding:14px;border-radius:10px;border:2px solid var(--teal);
+  background:transparent;color:var(--text);font-size:18px;font-weight:700;cursor:pointer;}
+.playerCount button.sel{background:var(--teal);color:#04222f;}
+.hpbars{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.hpbox{flex:1;min-width:150px;background:var(--card);border-radius:12px;padding:10px 12px;
+  border:2px solid transparent;}
+.hpbox.active{border-color:var(--teal);box-shadow:0 0 12px rgba(31,209,201,.5);}
+.hpbox.dead{opacity:.35;}
+.hpname{font-weight:700;font-size:14px;display:flex;justify-content:space-between;}
+.hpouter{background:#03202f;border-radius:6px;height:14px;margin-top:6px;overflow:hidden;}
+.hpinner{height:100%;background:linear-gradient(90deg,var(--good),var(--teal));
+  transition:width .6s ease;border-radius:6px;}
+.eventcard{background:linear-gradient(135deg,var(--card2),var(--card));border-radius:14px;
+  padding:20px;margin-bottom:16px;border:1px solid var(--teal);}
+.eventcard .dmg{color:var(--danger);font-weight:700;}
+.turnbanner{text-align:center;font-size:18px;margin-bottom:14px;padding:8px;
+  background:rgba(31,209,201,.12);border-radius:10px;}
+.options{display:grid;gap:10px;margin-top:14px;}
+.optbtn{background:#04263a;border:2px solid #2b8ad1;color:var(--text);padding:12px;
+  border-radius:10px;text-align:left;cursor:pointer;font-size:15px;}
+.optbtn:hover{border-color:var(--teal);}
+.optbtn.correct{background:rgba(62,224,140,.25);border-color:var(--good);}
+.optbtn.wrong{background:rgba(255,91,110,.25);border-color:var(--danger);}
+.explain{margin-top:14px;padding:12px;background:rgba(0,0,0,.25);border-radius:10px;font-size:14px;}
+.rebound{margin-top:14px;}
+.rebound button{margin:4px;}
+.log{max-height:180px;overflow-y:auto;background:rgba(0,0,0,.25);border-radius:10px;padding:10px;
+  font-size:13px;}
+.log div{padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);}
+.center{text-align:center;}
+footer.result{font-size:22px;margin:10px 0;}
+</style>
+</head>
+<body>
+<div class="screen">
+  <h1 style="text-align:center">🌊 Resiliencia Global: El Desafío Climático</h1>
+
+  <!-- SETUP -->
+  <div id="setup" class="card">
+    <h2>Configuración inicial</h2>
+    <p>Elige cuántos países jugarán:</p>
+    <div class="playerCount" id="pcount"></div>
+    <div id="playerForms"></div>
+    <div class="center"><button class="btn" onclick="startGame()">Comenzar Juego</button></div>
+  </div>
+
+  <!-- GAME -->
+  <div id="game" class="hidden">
+    <div class="hpbars" id="hpbars"></div>
+    <div class="turnbanner" id="turnBanner"></div>
+    <div class="eventcard" id="eventCard"></div>
+    <div class="card hidden" id="questionCard">
+      <h3 id="qText"></h3>
+      <div class="options" id="qOptions"></div>
+      <div id="feedback" class="hidden">
+        <div class="explain" id="explainBox"></div>
+        <div class="rebound hidden" id="reboundBox"></div>
+        <div class="center" style="margin-top:12px"><button class="btn" id="nextBtn" onclick="endTurn()">Continuar</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Historial</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <!-- END -->
+  <div id="endScreen" class="hidden card center">
+    <h2>🏆 Fin del juego</h2>
+    <footer class="result" id="resultText"></footer>
+    <button class="btn" onclick="location.reload()">Jugar de nuevo</button>
+  </div>
+</div>
+
+<script>
+const PAISES = ["Insular/Costero (Fiyi/Japón)","Pacífico Suramericano (Perú/Chile)","Atlántico Norte (Reino Unido/Noruega)","Tropical (Colombia/Brasil)"];
+
+const EVENTOS = [
+  {nombre:"Fenómeno de El Niño Fuerte", dmg:15, tema:"enso"},
+  {nombre:"Fenómeno de La Niña Intensa", dmg:12, tema:"enso"},
+  {nombre:"Alteración de la Termoclina", dmg:14, tema:"termoclina"},
+  {nombre:"Ruptura de la Haloclina Costera", dmg:13, tema:"haloclina"},
+  {nombre:"Debilitamiento de la Surgencia (Upwelling)", dmg:16, tema:"upwelling"},
+  {nombre:"Interrupción de la Circulación Termohalina", dmg:18, tema:"corrientes"},
+  {nombre:"Desvío de la Corriente del Golfo", dmg:15, tema:"corrientes"},
+  {nombre:"Ciclón Tropical Intensificado", dmg:20, tema:"huracanes"},
+  {nombre:"Huracán Categoría 5 en Formación", dmg:20, tema:"huracanes"},
+  {nombre:"Calentamiento Anómalo del Pacífico", dmg:14, tema:"enso"}
+];
+
+const PREGUNTAS = [
+{pregunta:"¿Qué caracteriza al fenómeno de El Niño en el Pacífico?",opciones:["a) Vientos alisios muy fuertes y agua fría en superficie","b) Debilitamiento de vientos alisios y calentamiento del mar superficial","c) Aumento de la salinidad profunda","d) Formación de icebergs tropicales"],correcta:1,explicacion:"El Niño se caracteriza por el debilitamiento de los vientos alisios, lo que permite que el agua cálida se acumule en el Pacífico oriental.",concepto:"enso"},
+{pregunta:"Durante La Niña, ¿qué ocurre con la temperatura superficial del Pacífico oriental?",opciones:["a) Se enfría por debajo de lo normal","b) Se calienta drásticamente","c) Permanece sin cambios","d) Se congela"],correcta:0,explicacion:"La Niña intensifica los vientos alisios, favoreciendo la surgencia de agua fría y enfriando la superficie del Pacífico oriental.",concepto:"enso"},
+{pregunta:"¿Qué es la termoclina?",opciones:["a) Una corriente cálida superficial","b) Una capa de cambio brusco de temperatura con la profundidad","c) Un tipo de huracán","d) La capa de ozono oceánica"],correcta:1,explicacion:"La termoclina es la capa donde la temperatura del agua cambia drásticamente en poca profundidad, separando aguas cálidas superficiales de aguas frías profundas.",concepto:"termoclina"},
+{pregunta:"La haloclina se define como una capa de cambio drástico en...",opciones:["a) Salinidad","b) Presión atmosférica","c) Color del agua","d) Velocidad del viento"],correcta:0,explicacion:"La haloclina es la capa oceánica donde la salinidad cambia rápidamente con la profundidad.",concepto:"haloclina"},
+{pregunta:"¿Qué proceso permite que nutrientes del fondo marino suban a la superficie en costas del Pacífico Sur?",opciones:["a) Haloclina profunda","b) Surgencia (Upwelling)","c) Efecto Coriolis inverso","d) Marea de tempestad"],correcta:1,explicacion:"La surgencia u upwelling ocurre cuando los vientos alejan las aguas superficiales, permitiendo que el agua fría y rica en nutrientes ascienda.",concepto:"upwelling"},
+{pregunta:"La Corriente de Humboldt es conocida por transportar aguas...",opciones:["a) Cálidas y pobres en nutrientes","b) Frías y ricas en nutrientes","c) Salinas y estancadas","d) Tibias y ácidas"],correcta:1,explicacion:"La Corriente de Humboldt transporta aguas frías ricas en nutrientes a lo largo de la costa oeste de Suramérica, sustentando gran biodiversidad marina.",concepto:"corrientes"},
+{pregunta:"¿Qué función cumple la Circulación Termohalina (cinta transportadora oceánica)?",opciones:["a) Distribuye calor entre océanos mediante diferencias de temperatura y salinidad","b) Genera huracanes en el Atlántico","c) Regula solo la marea lunar","d) Produce lluvia ácida"],correcta:0,explicacion:"La circulación termohalina mueve enormes masas de agua entre océanos, regulando el clima global mediante el transporte de calor y salinidad.",concepto:"corrientes"},
+{pregunta:"La Corriente del Golfo transporta agua cálida desde...",opciones:["a) El Ártico hacia el ecuador","b) El Golfo de México hacia el Atlántico Norte","c) La Antártida hacia África","d) El Pacífico hacia el Índico"],correcta:1,explicacion:"La Corriente del Golfo lleva agua cálida desde el Golfo de México hacia el Atlántico Norte, moderando el clima de Europa.",concepto:"corrientes"},
+{pregunta:"¿Cómo influye el calentamiento global en la intensidad de los huracanes?",opciones:["a) Los debilita por completo","b) No tiene relación alguna","c) Aumenta la energía disponible, intensificando su potencial destructivo","d) Los convierte en tornados"],correcta:2,explicacion:"El aumento de la temperatura oceánica provee más energía a los huracanes, favoreciendo tormentas más intensas.",concepto:"huracanes"},
+{pregunta:"Un ciclón tropical se alimenta principalmente de...",opciones:["a) Aire frío polar","b) Calor y humedad del océano cálido","c) Corrientes eléctricas atmosféricas","d) La haloclina profunda"],correcta:1,explicacion:"Los ciclones tropicales obtienen su energía de la evaporación de agua cálida oceánica, liberada como calor latente en la atmósfera.",concepto:"huracanes"},
+{pregunta:"Durante El Niño, ¿qué ocurre con la termoclina en el Pacífico oriental?",opciones:["a) Se profundiza, dificultando la surgencia","b) Desaparece por completo","c) Se eleva bruscamente a la superficie","d) Se congela"],correcta:0,explicacion:"En El Niño, la termoclina se profundiza en el Pacífico oriental, lo que reduce la surgencia de aguas frías y nutrientes.",concepto:"enso"},
+{pregunta:"¿Qué región suele sufrir sequías durante El Niño?",opciones:["a) Sureste asiático y Australia","b) Norte de Europa","c) Polo Sur","d) Groenlandia"],correcta:0,explicacion:"El Niño altera los patrones de lluvia, provocando sequías en el sureste asiático y Australia, mientras causa lluvias intensas en Suramérica.",concepto:"enso"},
+{pregunta:"La desaparición de la surgencia costera afecta principalmente a...",opciones:["a) La actividad volcánica","b) La pesca, por pérdida de nutrientes en superficie","c) La rotación terrestre","d) Las mareas lunares"],correcta:1,explicacion:"Sin surgencia, disminuyen los nutrientes en superficie, afectando el fitoplancton y por ende a toda la cadena trófica pesquera.",concepto:"upwelling"},
+{pregunta:"¿Qué gas de efecto invernadero es el principal impulsor del calentamiento oceánico actual?",opciones:["a) Oxígeno","b) Dióxido de carbono (CO2)","c) Nitrógeno","d) Helio"],correcta:1,explicacion:"El CO2 atmosférico atrapa calor, gran parte del cual es absorbido por los océanos, elevando su temperatura promedio.",concepto:"huracanes"},
+{pregunta:"Una haloclina marcada suele formarse cerca de...",opciones:["a) Desembocaduras de ríos donde se mezcla agua dulce y salada","b) El centro de un desierto","c) Zonas volcánicas activas","d) Polos magnéticos"],correcta:0,explicacion:"Cerca de desembocaduras de ríos, el agua dulce se mezcla con la salada creando una capa de cambio brusco de salinidad: la haloclina.",concepto:"haloclina"}
+];
+
+let players = [];
+let turnOrder = [];
+let currentIdx = 0;
+let round = 1;
+const MAX_ROUNDS = 5;
+let currentEvent = null;
+let currentQuestion = null;
+let answeredCorrect = false;
+
+// ---- SETUP UI ----
+let numPlayers = 2;
+function buildCountUI(){
+  const c = document.getElementById('pcount');
+  c.innerHTML = '';
+  [2,3,4].forEach(n=>{
+    const b = document.createElement('button');
+    b.textContent = n + ' jugadores';
+    if(n===numPlayers) b.classList.add('sel');
+    b.onclick = ()=>{numPlayers=n; buildCountUI(); buildForms();};
+    c.appendChild(b);
+  });
+}
+function buildForms(){
+  const f = document.getElementById('playerForms');
+  f.innerHTML = '';
+  for(let i=0;i<numPlayers;i++){
+    const row = document.createElement('div');
+    row.className = 'setup-row';
+    row.innerHTML = `
+      <div><label>Nombre jugador ${i+1}</label>
+        <input type="text" id="pname${i}" placeholder="Nombre" value="Jugador ${i+1}"></div>
+      <div><label>País / Región</label>
+        <select id="pcountry${i}">
+          ${PAISES.map((p,idx)=>`<option value="${p}" ${idx===i?'selected':''}>${p}</option>`).join('')}
+        </select></div>`;
+    f.appendChild(row);
+  }
+}
+buildCountUI(); buildForms();
+
+function startGame(){
+  players = [];
+  for(let i=0;i<numPlayers;i++){
+    const name = document.getElementById('pname'+i).value || ('Jugador '+(i+1));
+    const country = document.getElementById('pcountry'+i).value;
+    players.push({name,country,hp:100,alive:true});
+  }
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
+  currentIdx = 0; round = 1;
+  renderHP();
+  addLog(`🌍 ¡Comienza la partida! Ronda ${round} de ${MAX_ROUNDS}.`);
+  nextTurn();
+}
+
+function renderHP(){
+  const box = document.getElementById('hpbars');
+  box.innerHTML = '';
+  players.forEach((p,i)=>{
+    const d = document.createElement('div');
+    d.className = 'hpbox' + (i===currentIdx && p.alive? ' active':'') + (!p.alive?' dead':'');
+    d.innerHTML = `<div class="hpname"><span>${p.name}</span><span>${Math.max(p.hp,0)} HP</span></div>
+      <div style="font-size:11px;opacity:.7">${p.country}</div>
+      <div class="hpouter"><div class="hpinner" style="width:${Math.max(p.hp,0)}%"></div></div>`;
+    box.appendChild(d);
+  });
+}
+
+function addLog(text){
+  const l = document.getElementById('log');
+  const d = document.createElement('div');
+  d.textContent = text;
+  l.prepend(d);
+}
+
+function alivePlayers(){ return players.filter(p=>p.alive); }
+
+function nextTurn(){
+  if(alivePlayers().length<=1 || round>MAX_ROUNDS){ return finishGame(); }
+  // skip dead players
+  let guard=0;
+  while(!players[currentIdx].alive && guard<players.length+1){
+    currentIdx = (currentIdx+1)%players.length;
+    guard++;
+  }
+  document.getElementById('questionCard').classList.add('hidden');
+  document.getElementById('feedback').classList.add('hidden');
+  renderHP();
+  const p = players[currentIdx];
+  document.getElementById('turnBanner').textContent = `Turno de ${p.name} (${p.country}) — Ronda ${round}/${MAX_ROUNDS}`;
+  currentEvent = EVENTOS[Math.floor(Math.random()*EVENTOS.length)];
+  document.getElementById('eventCard').innerHTML = `
+    <h3>⚡ Evento Climático Global</h3>
+    <p><strong>${currentEvent.nombre}</strong></p>
+    <p>Daño potencial: <span class="dmg">-${currentEvent.dmg} HP</span></p>
+    <div class="center"><button class="btn" onclick="showQuestion()">Enfrentar el evento</button></div>`;
+}
+
+function showQuestion(){
+  const pool = PREGUNTAS.filter(q=>q.concepto===currentEvent.tema);
+  currentQuestion = (pool.length? pool : PREGUNTAS)[Math.floor(Math.random()*(pool.length?pool.length:PREGUNTAS.length))];
+  document.getElementById('eventCard').innerHTML = `<h3>⚡ ${currentEvent.nombre}</h3><p>Responde correctamente para mitigar el daño.</p>`;
+  const qc = document.getElementById('questionCard');
+  qc.classList.remove('hidden');
+  document.getElementById('qText').textContent = currentQuestion.pregunta;
+  const opts = document.getElementById('qOptions');
+  opts.innerHTML = '';
+  currentQuestion.opciones.forEach((op,idx)=>{
+    const b = document.createElement('button');
+    b.className = 'optbtn';
+    b.textContent = op;
+    b.onclick = ()=>answer(idx,b);
+    opts.appendChild(b);
+  });
+  document.getElementById('feedback').classList.add('hidden');
+}
+
+function answer(idx, btnEl){
+  const p = players[currentIdx];
+  const opts = document.querySelectorAll('#qOptions .optbtn');
+  opts.forEach(b=>b.disabled=true);
+  answeredCorrect = (idx === currentQuestion.correcta);
+  opts[currentQuestion.correcta].classList.add('correct');
+  if(!answeredCorrect) btnEl.classList.add('wrong');
+
+  if(answeredCorrect){
+    p.hp = Math.min(100, p.hp + 12);
+    addLog(`✅ ${p.name} respondió correctamente y recuperó +12 HP.`);
+  } else {
+    p.hp = Math.max(0, p.hp - currentEvent.dmg);
+    addLog(`❌ ${p.name} respondió mal y sufrió -${currentEvent.dmg} HP por "${currentEvent.nombre}".`);
+  }
+  if(p.hp<=0){ p.alive=false; addLog(`💥 ${p.name} entra en Crisis Climática (eliminado).`); }
+  renderHP();
+
+  document.getElementById('explainBox').textContent = currentQuestion.explicacion;
+  document.getElementById('feedback').classList.remove('hidden');
+
+  const rb = document.getElementById('reboundBox');
+  if(answeredCorrect && alivePlayers().filter(pl=>pl!==p).length>0){
+    rb.classList.remove('hidden');
+    rb.innerHTML = '<p><strong>Efecto Rebote:</strong> elige un rival para transferirle -10 HP</p>';
+    players.forEach((riv,ri)=>{
+      if(riv!==p && riv.alive){
+        const rbtn = document.createElement('button');
+        rbtn.className='btn';
+        rbtn.textContent = riv.name;
+        rbtn.onclick = ()=>{
+          riv.hp = Math.max(0, riv.hp-10);
+          addLog(`↩️ ${p.name} activó el Efecto Rebote: -10 HP a ${riv.name}.`);
+          if(riv.hp<=0){riv.alive=false; addLog(`💥 ${riv.name} entra en Crisis Climática (eliminado).`);}
+          renderHP();
+          rb.innerHTML = `<p>Rebote aplicado a ${riv.name}.</p>`;
+        };
+        rb.appendChild(rbtn);
+      }
+    });
+  } else {
+    rb.classList.add('hidden');
+    rb.innerHTML = '';
+  }
+}
+
+function endTurn(){
+  const startIdx = currentIdx;
+  currentIdx = (currentIdx+1)%players.length;
+  if(currentIdx <= startIdx || players.slice(startIdx+1).every(p=>!p.alive)){
+    // completed a lap
+  }
+  // detect end of round: if we wrapped back to index 0 region
+  if(currentIdx===0){ round++; }
+  nextTurn();
+}
+
+function finishGame(){
+  document.getElementById('game').classList.add('hidden');
+  document.getElementById('endScreen').classList.remove('hidden');
+  const ranked = [...players].sort((a,b)=>b.hp-a.hp);
+  const winner = ranked[0];
+  let html = `<p>${winner.name} (${winner.country}) gana con ${winner.hp} HP restante.</p><div class="log" style="text-align:left">`;
+  ranked.forEach(p=>{ html += `<div>${p.name}: ${p.hp} HP ${p.alive?'':'(eliminado)'}</div>`; });
+  html += '</div>';
+  document.getElementById('resultText').innerHTML = html;
+}
+</script>
+</body>
+</html>
