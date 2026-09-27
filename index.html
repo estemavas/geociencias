@@ -59,6 +59,8 @@ select,input[type=text]{width:100%;padding:10px;border-radius:8px;border:1px sol
 .log{max-height:180px;overflow-y:auto;background:rgba(0,0,0,.25);border-radius:10px;padding:10px;
   font-size:13px;}
 .log div{padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);}
+.credits{position:fixed;bottom:8px;right:12px;font-size:11px;opacity:.65;text-align:right;
+  line-height:1.4;z-index:5;background:rgba(2,18,31,.55);padding:6px 10px;border-radius:8px;}
 .center{text-align:center;}
 footer.result{font-size:22px;margin:10px 0;}
 </style>
@@ -74,7 +76,7 @@ footer.result{font-size:22px;margin:10px 0;}
     <ul style="margin:6px 0 0 18px;padding:0">
       <li>En tu turno aparece un <strong>Evento Climático Global</strong> con un daño potencial.</li>
       <li>Responde la pregunta de opción múltiple relacionada con el evento.</li>
-      <li><strong>Correcta:</strong> te recuperas +12 HP y puedes activar el <strong>Efecto Rebote</strong> (-10 HP a un rival).</li>
+      <li><strong>Correcta:</strong> te recuperas +6 HP y puedes activar el <strong>Efecto Rebote</strong> (-5 HP a un rival).</li>
       <li><strong>Incorrecta:</strong> recibes el daño completo del evento.</li>
       <li>El juego dura 5 rondas o hasta que quede un solo país en pie. Gana quien tenga más HP.</li>
     </ul>
@@ -117,8 +119,38 @@ footer.result{font-size:22px;margin:10px 0;}
   </div>
 </div>
 
+<div class="credits" id="creditos">
+  Sebastián Jiménez Giraldo · 202613534<br>
+  Jerónimo Karakatsianis Polania · 202521408<br>
+  Esteban Mahecha Vásquez · 202614041
+</div>
+
 <script>
-const PAISES = ["Insular/Costero (Fiyi/Japón)","Pacífico Suramericano (Perú/Chile)","Atlántico Norte (Reino Unido/Noruega)","Tropical (Colombia/Brasil)"];
+const PAISES = [
+  {code:'insular', label:'Insular/Costero (Fiyi/Japón)'},
+  {code:'pacifico', label:'Pacífico Suramericano (Perú/Chile)'},
+  {code:'atlantico', label:'Atlántico Norte (Reino Unido/Noruega)'},
+  {code:'tropical', label:'Tropical (Colombia/Brasil)'}
+];
+
+const EFECTOS_PAIS = {
+  insular: {
+    huracanes: {mult:1.3, motivo:"Los países insulares y costeros están directamente expuestos al viento y oleaje de los ciclones tropicales."},
+    corrientes: {mult:0.8, motivo:"Al estar rodeados de océano, se benefician de su gran capacidad para amortiguar cambios bruscos de temperatura."}
+  },
+  pacifico: {
+    enso: {mult:1.4, motivo:"El Niño y La Niña se originan en el Pacífico ecuatorial y golpean directamente esta costa."},
+    upwelling: {mult:1.4, motivo:"La Corriente de Humboldt y su surgencia sostienen la economía pesquera de esta región."}
+  },
+  atlantico: {
+    corrientes: {mult:1.4, motivo:"El clima de esta región depende fuertemente de la Corriente del Golfo y la Circulación Termohalina."},
+    enso: {mult:0.7, motivo:"Al estar lejos del Pacífico ecuatorial, el impacto directo de El Niño/La Niña es menor."}
+  },
+  tropical: {
+    huracanes: {mult:1.3, motivo:"Las aguas cálidas tropicales alimentan y intensifican los ciclones."},
+    termoclina: {mult:0.85, motivo:"Las aguas cálidas tropicales mantienen una termoclina más estable todo el año."}
+  }
+};
 
 const ICONOS = {
   enso: `<svg viewBox="0 0 120 90" width="90" height="68"><rect x="0" y="55" width="120" height="35" fill="#0d4a6b"/><path d="M0 55 Q30 40 60 55 T120 55" fill="none" stroke="#ff8a5b" stroke-width="6"/><circle cx="95" cy="20" r="12" fill="#ffd166"/><path d="M10 60 q5 10 0 20" stroke="#1fd1c9" stroke-width="3" fill="none"/><path d="M25 60 q5 10 0 20" stroke="#1fd1c9" stroke-width="3" fill="none"/></svg>`,
@@ -129,17 +161,33 @@ const ICONOS = {
   huracanes: `<svg viewBox="0 0 100 100" width="80" height="80"><circle cx="50" cy="50" r="45" fill="#0a3a55"/><path d="M50 50 m-30 0 a30 30 0 1 1 60 0" stroke="#ff5b6e" stroke-width="6" fill="none"/><path d="M50 50 m-18 0 a18 18 0 1 0 36 0" stroke="#ffd166" stroke-width="5" fill="none"/><circle cx="50" cy="50" r="5" fill="#fff"/></svg>`
 };
 
+const NOMBRES_TEMA = {enso:'ENSO (El Niño/La Niña)', termoclina:'Termoclina', haloclina:'Haloclina', upwelling:'Surgencia (Upwelling)', corrientes:'Corrientes marinas', huracanes:'Huracanes/Ciclones'};
+
+function paisInfoHTML(code){
+  const info = EFECTOS_PAIS[code];
+  if(!info) return '<div style="font-size:11px;opacity:.6;margin-top:4px">Sin efectos especiales.</div>';
+  return '<div style="font-size:11px;margin-top:4px;line-height:1.5">' + Object.entries(info).map(([tema,val])=>{
+    const esVulnerable = val.mult>1;
+    return `<div style="color:${esVulnerable?'var(--danger)':'var(--good)'}">${esVulnerable?'⚠️ Vulnerable a':'🛡️ Resistente a'} ${NOMBRES_TEMA[tema]||tema} (x${val.mult})</div>`;
+  }).join('') + '</div>';
+}
+
+function actualizarInfoPais(i){
+  const code = document.getElementById('pcountry'+i).value;
+  document.getElementById('paisInfo'+i).innerHTML = paisInfoHTML(code);
+}
+
 const EVENTOS = [
-  {nombre:"Fenómeno de El Niño Fuerte", dmg:15, tema:"enso"},
-  {nombre:"Fenómeno de La Niña Intensa", dmg:12, tema:"enso"},
-  {nombre:"Alteración de la Termoclina", dmg:14, tema:"termoclina"},
-  {nombre:"Ruptura de la Haloclina Costera", dmg:13, tema:"haloclina"},
-  {nombre:"Debilitamiento de la Surgencia (Upwelling)", dmg:16, tema:"upwelling"},
-  {nombre:"Interrupción de la Circulación Termohalina", dmg:18, tema:"corrientes"},
-  {nombre:"Desvío de la Corriente del Golfo", dmg:15, tema:"corrientes"},
-  {nombre:"Ciclón Tropical Intensificado", dmg:20, tema:"huracanes"},
-  {nombre:"Huracán Categoría 5 en Formación", dmg:20, tema:"huracanes"},
-  {nombre:"Calentamiento Anómalo del Pacífico", dmg:14, tema:"enso"}
+  {nombre:"Fenómeno de El Niño Fuerte", dmg:8, tema:"enso"},
+  {nombre:"Fenómeno de La Niña Intensa", dmg:6, tema:"enso"},
+  {nombre:"Alteración de la Termoclina", dmg:7, tema:"termoclina"},
+  {nombre:"Ruptura de la Haloclina Costera", dmg:7, tema:"haloclina"},
+  {nombre:"Debilitamiento de la Surgencia (Upwelling)", dmg:8, tema:"upwelling"},
+  {nombre:"Interrupción de la Circulación Termohalina", dmg:9, tema:"corrientes"},
+  {nombre:"Desvío de la Corriente del Golfo", dmg:8, tema:"corrientes"},
+  {nombre:"Ciclón Tropical Intensificado", dmg:10, tema:"huracanes"},
+  {nombre:"Huracán Categoría 5 en Formación", dmg:10, tema:"huracanes"},
+  {nombre:"Calentamiento Anómalo del Pacífico", dmg:7, tema:"enso"}
 ];
 
 const PREGUNTAS = [
@@ -160,6 +208,7 @@ const PREGUNTAS = [
 {pregunta:"Una haloclina marcada suele formarse cerca de...",opciones:["a) Desembocaduras de ríos donde se mezcla agua dulce y salada","b) El centro de un desierto","c) Zonas volcánicas activas","d) Polos magnéticos"],correcta:0,explicacion:"Cerca de desembocaduras de ríos, el agua dulce se mezcla con la salada creando una capa de cambio brusco de salinidad: la haloclina.",concepto:"haloclina"}
 ];
 
+const MAX_HP = 50;
 let players = [];
 let turnOrder = [];
 let currentIdx = 0;
@@ -168,6 +217,36 @@ const MAX_ROUNDS = 5;
 let currentEvent = null;
 let currentQuestion = null;
 let answeredCorrect = false;
+let mazoEventos = [];
+let ultimoEventoIdx = -1;
+let preguntasUsadas = new Set();
+
+function sacarEvento(){
+  if(mazoEventos.length===0){
+    mazoEventos = EVENTOS.map((e,i)=>i);
+    for(let i=mazoEventos.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [mazoEventos[i],mazoEventos[j]]=[mazoEventos[j],mazoEventos[i]];
+    }
+    if(mazoEventos.length>1 && mazoEventos[mazoEventos.length-1]===ultimoEventoIdx){
+      [mazoEventos[0],mazoEventos[mazoEventos.length-1]]=[mazoEventos[mazoEventos.length-1],mazoEventos[0]];
+    }
+  }
+  const idx = mazoEventos.pop();
+  ultimoEventoIdx = idx;
+  return EVENTOS[idx];
+}
+
+function elegirPregunta(tema){
+  const todasIdx = PREGUNTAS.map((q,i)=>i);
+  let pool = todasIdx.filter(i=>PREGUNTAS[i].concepto===tema && !preguntasUsadas.has(i));
+  if(pool.length===0) pool = todasIdx.filter(i=>!preguntasUsadas.has(i));
+  if(pool.length===0){ preguntasUsadas.clear(); pool = todasIdx.filter(i=>PREGUNTAS[i].concepto===tema); }
+  if(pool.length===0) pool = todasIdx;
+  const qIdx = pool[Math.floor(Math.random()*pool.length)];
+  preguntasUsadas.add(qIdx);
+  return PREGUNTAS[qIdx];
+}
 
 // ---- SETUP UI ----
 let numPlayers = 2;
@@ -193,7 +272,7 @@ function buildForms(){
         <input type="text" id="pname${i}" placeholder="Nombre" value="Jugador ${i+1}"></div>
       <div><label>País / Región</label>
         <select id="pcountry${i}">
-          ${PAISES.map((p,idx)=>`<option value="${p}" ${idx===i?'selected':''}>${p}</option>`).join('')}
+          ${PAISES.map((p,idx)=>`<option value="${p.code}" ${idx===i?'selected':''}>${p.label}</option>`).join('')}
         </select></div>`;
     f.appendChild(row);
   }
@@ -204,10 +283,13 @@ function startGame(){
   players = [];
   for(let i=0;i<numPlayers;i++){
     const name = document.getElementById('pname'+i).value || ('Jugador '+(i+1));
-    const country = document.getElementById('pcountry'+i).value;
-    players.push({name,country,hp:100,alive:true});
+    const countryCode = document.getElementById('pcountry'+i).value;
+    const countryLabel = (PAISES.find(p=>p.code===countryCode)||{}).label || countryCode;
+    players.push({name,countryCode,countryLabel,hp:MAX_HP,alive:true,escudo:false});
   }
   document.getElementById('setup').classList.add('hidden');
+  document.getElementById('instrucciones').classList.add('hidden');
+  document.getElementById('creditos').classList.add('hidden');
   document.getElementById('game').classList.remove('hidden');
   currentIdx = 0; round = 1;
   renderHP();
@@ -221,9 +303,9 @@ function renderHP(){
   players.forEach((p,i)=>{
     const d = document.createElement('div');
     d.className = 'hpbox' + (i===currentIdx && p.alive? ' active':'') + (!p.alive?' dead':'');
-    d.innerHTML = `<div class="hpname"><span>${p.name}</span><span>${Math.max(p.hp,0)} HP</span></div>
-      <div style="font-size:11px;opacity:.7">${p.country}</div>
-      <div class="hpouter"><div class="hpinner" style="width:${Math.max(p.hp,0)}%"></div></div>`;
+    d.innerHTML = `<div class="hpname"><span>${p.name}${p.escudo?' 🛡️':''}</span><span>${Math.max(p.hp,0)} HP</span></div>
+      <div style="font-size:11px;opacity:.7">${p.countryLabel}</div>
+      <div class="hpouter"><div class="hpinner" style="width:${Math.max(p.hp,0)/MAX_HP*100}%"></div></div>`;
     box.appendChild(d);
   });
 }
@@ -237,6 +319,10 @@ function addLog(text){
 
 function alivePlayers(){ return players.filter(p=>p.alive); }
 
+function getEfecto(player, tema){
+  return (EFECTOS_PAIS[player.countryCode] && EFECTOS_PAIS[player.countryCode][tema]) || null;
+}
+
 function nextTurn(){
   if(alivePlayers().length<=1 || round>MAX_ROUNDS){ return finishGame(); }
   // skip dead players
@@ -249,23 +335,35 @@ function nextTurn(){
   document.getElementById('feedback').classList.add('hidden');
   renderHP();
   const p = players[currentIdx];
-  document.getElementById('turnBanner').textContent = `Turno de ${p.name} (${p.country}) — Ronda ${round}/${MAX_ROUNDS}`;
-  currentEvent = EVENTOS[Math.floor(Math.random()*EVENTOS.length)];
+  document.getElementById('turnBanner').textContent = `Turno de ${p.name} (${p.countryLabel}) — Ronda ${round}/${MAX_ROUNDS}`;
+  currentEvent = sacarEvento();
+  const efecto = getEfecto(p, currentEvent.tema);
+  const dmgAjustado = efecto ? Math.round(currentEvent.dmg * efecto.mult) : currentEvent.dmg;
+  let notaEfecto = '';
+  if(efecto){
+    const esVulnerable = efecto.mult > 1;
+    notaEfecto = `<div style="margin-top:10px;padding:10px;border-radius:8px;
+      background:${esVulnerable?'rgba(255,91,110,.15)':'rgba(62,224,140,.15)'};
+      border:1px solid ${esVulnerable?'var(--danger)':'var(--good)'};font-size:13px">
+      ${esVulnerable?'⚠️ Mayor vulnerabilidad':'🛡️ Mayor resiliencia'} (x${efecto.mult}) para ${p.countryLabel}:
+      <br>${efecto.motivo}
+    </div>`;
+  }
   document.getElementById('eventCard').innerHTML = `
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
       <div>${ICONOS[currentEvent.tema] || ''}</div>
       <div>
         <h3 style="margin:0">⚡ Evento Climático Global</h3>
         <p style="margin:6px 0"><strong>${currentEvent.nombre}</strong></p>
-        <p style="margin:0">Daño potencial: <span class="dmg">-${currentEvent.dmg} HP</span></p>
+        <p style="margin:0">Daño potencial: <span class="dmg">-${dmgAjustado} HP</span></p>
       </div>
     </div>
+    ${notaEfecto}
     <div class="center" style="margin-top:12px"><button class="btn" onclick="showQuestion()">Enfrentar el evento</button></div>`;
 }
 
 function showQuestion(){
-  const pool = PREGUNTAS.filter(q=>q.concepto===currentEvent.tema);
-  currentQuestion = (pool.length? pool : PREGUNTAS)[Math.floor(Math.random()*(pool.length?pool.length:PREGUNTAS.length))];
+  currentQuestion = elegirPregunta(currentEvent.tema);
   document.getElementById('eventCard').innerHTML = `
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
       <div>${ICONOS[currentEvent.tema] || ''}</div>
@@ -295,12 +393,18 @@ function answer(idx, btnEl){
   opts[currentQuestion.correcta].classList.add('correct');
   if(!answeredCorrect) btnEl.classList.add('wrong');
 
+  const efecto = getEfecto(p, currentEvent.tema);
+  const dmgAjustado = efecto ? Math.round(currentEvent.dmg * efecto.mult) : currentEvent.dmg;
+
   if(answeredCorrect){
-    p.hp = Math.min(100, p.hp + 12);
-    addLog(`✅ ${p.name} respondió correctamente y recuperó +12 HP.`);
+    p.hp = Math.min(MAX_HP, p.hp + 6);
+    addLog(`✅ ${p.name} respondió correctamente y recuperó +6 HP.`);
+  } else if(p.escudo){
+    p.escudo = false;
+    addLog(`🛡️ ${p.name} usó su Escudo y bloqueó por completo el daño de "${currentEvent.nombre}".`);
   } else {
-    p.hp = Math.max(0, p.hp - currentEvent.dmg);
-    addLog(`❌ ${p.name} respondió mal y sufrió -${currentEvent.dmg} HP por "${currentEvent.nombre}".`);
+    p.hp = Math.max(0, p.hp - dmgAjustado);
+    addLog(`❌ ${p.name} respondió mal y sufrió -${dmgAjustado} HP por "${currentEvent.nombre}"${efecto?` (afectado x${efecto.mult} por ser ${p.countryLabel})`:''}.`);
   }
   if(p.hp<=0){ p.alive=false; addLog(`💥 ${p.name} entra en Crisis Climática (eliminado).`); }
   renderHP();
@@ -313,24 +417,37 @@ function answer(idx, btnEl){
   document.getElementById('feedback').classList.remove('hidden');
 
   const rb = document.getElementById('reboundBox');
-  if(answeredCorrect && alivePlayers().filter(pl=>pl!==p).length>0){
+  if(answeredCorrect){
     rb.classList.remove('hidden');
-    rb.innerHTML = '<p><strong>Efecto Rebote:</strong> elige un rival para transferirle -10 HP</p>';
-    players.forEach((riv,ri)=>{
-      if(riv!==p && riv.alive){
-        const rbtn = document.createElement('button');
-        rbtn.className='btn';
-        rbtn.textContent = riv.name;
-        rbtn.onclick = ()=>{
-          riv.hp = Math.max(0, riv.hp-10);
-          addLog(`↩️ ${p.name} activó el Efecto Rebote: -10 HP a ${riv.name}.`);
-          if(riv.hp<=0){riv.alive=false; addLog(`💥 ${riv.name} entra en Crisis Climática (eliminado).`);}
-          renderHP();
-          rb.innerHTML = `<p>Rebote aplicado a ${riv.name}.</p>`;
-        };
-        rb.appendChild(rbtn);
-      }
-    });
+    const hayRivales = alivePlayers().filter(pl=>pl!==p).length>0;
+    rb.innerHTML = `<p><strong>Elige tu recompensa:</strong></p>
+      <button class="btn" id="btnRebote" ${hayRivales?'':'disabled'}>🎯 Efecto Rebote (-5 HP a un rival)</button>
+      <button class="btn" id="btnEscudo">🛡️ Activar Escudo (bloquea tu próximo daño)</button>`;
+    document.getElementById('btnEscudo').onclick = ()=>{
+      p.escudo = true;
+      addLog(`🛡️ ${p.name} activó un Escudo para su próximo turno.`);
+      rb.innerHTML = `<p>Escudo activado para ${p.name}.</p>`;
+    };
+    if(hayRivales){
+      document.getElementById('btnRebote').onclick = ()=>{
+        rb.innerHTML = '<p><strong>Efecto Rebote:</strong> elige un rival para transferirle -5 HP</p>';
+        players.forEach((riv)=>{
+          if(riv!==p && riv.alive){
+            const rbtn = document.createElement('button');
+            rbtn.className='btn';
+            rbtn.textContent = riv.name;
+            rbtn.onclick = ()=>{
+              riv.hp = Math.max(0, riv.hp-5);
+              addLog(`↩️ ${p.name} activó el Efecto Rebote: -5 HP a ${riv.name}.`);
+              if(riv.hp<=0){riv.alive=false; addLog(`💥 ${riv.name} entra en Crisis Climática (eliminado).`);}
+              renderHP();
+              rb.innerHTML = `<p>Rebote aplicado a ${riv.name}.</p>`;
+            };
+            rb.appendChild(rbtn);
+          }
+        });
+      };
+    }
   } else {
     rb.classList.add('hidden');
     rb.innerHTML = '';
@@ -353,7 +470,7 @@ function finishGame(){
   document.getElementById('endScreen').classList.remove('hidden');
   const ranked = [...players].sort((a,b)=>b.hp-a.hp);
   const winner = ranked[0];
-  let html = `<p>${winner.name} (${winner.country}) gana con ${winner.hp} HP restante.</p><div class="log" style="text-align:left">`;
+  let html = `<p>${winner.name} (${winner.countryLabel}) gana con ${winner.hp} HP restante.</p><div class="log" style="text-align:left">`;
   ranked.forEach(p=>{ html += `<div>${p.name}: ${p.hp} HP ${p.alive?'':'(eliminado)'}</div>`; });
   html += '</div>';
   document.getElementById('resultText').innerHTML = html;
